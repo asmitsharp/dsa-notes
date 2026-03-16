@@ -86,6 +86,25 @@ sort.Slice(intervals, func(i, j int) bool {
 > - Sort by **END** time: greedy removal / activity selection / arrow problems
 > - Tie-break: sort by end when starts are equal (problem-dependent).
 > - Time cost: O(n log n) — this usually dominates overall complexity.
+>
+> **WHY sort by START enables a single-pass merge:**
+> Once intervals are ordered by start, the interval you're currently looking at can only
+> possibly overlap with the *last* entry in your result — never with anything earlier.
+> Why? Because all earlier entries were merged from intervals with smaller start times,
+> and once we determined `curr.start > last.end`, no future interval (which starts even
+> later) can ever reach back to overlap `last`. So `last` is permanently finalized and
+> we never need to revisit it. This gives you a clean O(n) sweep after the sort.
+>
+> **WHY sort by END enables greedy removal (Activity Selection argument):**
+> Goal: keep as many non-overlapping intervals as possible (= remove minimum).
+> Among all valid choices for the first interval to keep, always pick the one ending
+> earliest. Proof by exchange: suppose you keep X (ending at x2) instead of Y (ending
+> at y2 ≤ x2). Swap X → Y. Since y2 ≤ x2, anything compatible after X is also
+> compatible after Y. So Y is *at least as good* — never worse. Apply this reasoning
+> at every step → greedy is globally optimal.
+> Counter-example for why sort-by-start FAILS here: intervals [1,100],[2,3],[4,5],[6,7].
+> Sort by start → keep [1,100], nothing else fits → 1 kept.
+> Sort by end → keep [2,3],[4,5],[6,7] → 3 kept. Huge difference.
 
 ### 2.2 Min-Heap (Priority Queue)
 
@@ -169,6 +188,23 @@ func merge(intervals [][]int) [][]int {
 // [15,18] no overlap -> res=[[1,6],[8,10],[15,18]]
 ```
 
+> **WHY THIS WORKS — THE CORE INVARIANT**
+>
+> After sorting by start, we maintain one invariant: `res[last]` holds the maximally
+> merged interval for everything processed so far, and its `.end` is the largest end
+> seen so far in the merged output.
+>
+> When we process `curr`:
+> - **Overlap case** (`curr[0] <= last[1]`): curr starts inside or at the boundary of
+>   last. We extend: `last[1] = max(last[1], curr[1])`. We use `max()` — not just
+>   `curr[1]` — because curr might be fully *contained* inside last (e.g. last=[1,10],
+>   curr=[3,5]). Blindly taking curr[1] would shrink the interval — a subtle bug.
+> - **No-overlap case** (`curr[0] > last[1]`): curr starts strictly after last ends.
+>   Since all *future* intervals have start ≥ curr[0] > last[1], nothing can ever
+>   extend last again. It's finalized. Push curr as a fresh entry.
+>
+> The result: each interval is visited once → O(n) after sorting.
+
 ---
 
 ### 3.2 Insert Interval [LC 57]
@@ -200,6 +236,28 @@ func insert(intervals [][]int, newInterval []int) [][]int {
     return res
 }
 ```
+
+> **WHY THE THREE PHASES ARE CORRECT**
+>
+> The input is already sorted and non-overlapping — exploit this structure fully.
+>
+> **Phase 1** — Copy untouched: interval `iv` ends before newInterval starts
+> (`iv[1] < newInterval[0]`). These intervals exist entirely to the left of newInterval.
+> They cannot overlap with newInterval, and since the list is sorted, they also cannot
+> overlap with anything after newInterval. Copy as-is.
+>
+> **Phase 2** — Merge: an interval overlaps newInterval if it does NOT end before
+> newInterval starts AND does NOT start after newInterval ends. Phase 1 already skipped
+> the "ends before" case, so any remaining interval where `iv[0] <= newInterval[1]`
+> must overlap. Absorb it: expand newInterval's bounds to cover both. After the loop,
+> newInterval is the fully merged result.
+>
+> **Phase 3** — Copy untouched: all remaining intervals start after newInterval ends
+> (`iv[0] > newInterval[1]`). They're entirely to the right — copy directly.
+>
+> Key insight: because the input is non-overlapping and sorted, the overlapping zone
+> is always a *contiguous block* of indices. The three phases partition the array
+> cleanly into left / overlap / right. No sorting needed → O(n).
 
 ---
 
@@ -240,6 +298,35 @@ func minMeetingRooms2(intervals [][]int) int {
 }
 ```
 
+> **WHY THE HEAP APPROACH WORKS**
+>
+> We process meetings in start-time order. When meeting `iv` is about to begin, we
+> need to know: is any room free? A room is free if its current meeting ended at or
+> before `iv[0]`. Among all occupied rooms, the one *most likely* to be free is the
+> one whose meeting ends *earliest* — that's `heap[0]`.
+>
+> - If `heap[0] <= iv[0]`: that room just freed up. Pop it (remove its old end time)
+>   and push `iv[1]` — we've reused the room.
+> - If `heap[0] > iv[0]`: even the earliest-ending room isn't done yet. No room is
+>   free. Push `iv[1]` without popping — we open a new room.
+>
+> At the end, heap.Len() = number of rooms still occupied = total rooms needed.
+> We only ever need to check the *minimum* end time, hence the min-heap.
+>
+> **WHY THE TWO-ARRAY SWEEP WORKS**
+>
+> Decouple starts and ends. Sort them independently. Walk through every start in order.
+> For each new meeting starting at `starts[s]`, ask: has any meeting ended by now?
+> Check `ends[e]` — the earliest scheduled end.
+> - If `starts[s] >= ends[e]`: a meeting ended, its room is free. Advance `e` (recycle
+>   room). Don't increment `rooms`.
+> - Otherwise: no room freed yet. We need a new room. Increment `rooms`.
+>
+> Why does this correctly pair meetings? We don't need actual pairing — we just need
+> the *count* of rooms. At any start event, exactly one recycling opportunity exists
+> if the minimum end ≤ current start. The sorted arrays ensure we always check the
+> globally earliest end against the current start.
+
 ---
 
 ### 3.4 Non-overlapping Intervals [LC 435]
@@ -264,10 +351,26 @@ func eraseOverlapIntervals(intervals [][]int) int {
 }
 ```
 
-> **WHY SORT BY END FOR REMOVAL?**
-> Activity Selection Theorem (classic greedy): Always pick the interval ending earliest.
-> This maximizes the count of non-overlapping intervals we can keep.
-> Sorting by start time here gives the **WRONG answer** — common interview mistake!
+> **WHY SORT BY END FOR REMOVAL? — Full Proof**
+>
+> Goal: keep the *maximum* number of non-overlapping intervals (equivalently, remove
+> the minimum). Claim: always keep the interval with the earliest end time among those
+> that don't conflict with what you've already kept.
+>
+> **Exchange argument (proof):** Suppose an optimal solution S keeps interval X but
+> not Y, where both are compatible with previously kept intervals, and Y ends no later
+> than X (y2 ≤ x2). Build S' = (S - {X}) ∪ {Y}. Is S' valid?
+> - Y doesn't conflict with intervals kept before X: same start point as X, ends ≤ x2.
+> - Any interval kept after X starts at or after x2. Since y2 ≤ x2, those intervals
+>   also start at or after y2. So they remain compatible with Y.
+> S' is valid and has the same count as S. We can always swap to the earlier-ending
+> interval without losing anything. Apply at every step → greedy is globally optimal.
+>
+> **Why sort by start FAILS here:** Sort by start and greedily keep non-conflicting:
+> Input: [1,100], [2,3], [4,5], [6,7]
+> → Keep [1,100] first, then nothing else fits → 1 interval kept.
+> Sort by end: keep [2,3], [4,5], [6,7] → 3 intervals kept.
+> The long interval [1,100] "wastes" the timeline even though shorter ones fit inside it.
 
 ---
 
@@ -292,6 +395,23 @@ func intervalIntersection(A, B [][]int) [][]int {
     return res
 }
 ```
+
+> **WHY ADVANCE THE POINTER THAT ENDS FIRST**
+>
+> After we process A[i] and B[j] (and record their intersection if any), we need to
+> decide: move i or move j?
+>
+> Say A[i][1] < B[j][1] — A[i] ends earlier. Ask: can A[i] intersect with B[j+1]?
+> B[j+1].start ≥ B[j].end > A[i].end (since lists are sorted and non-overlapping).
+> So B[j+1] starts *strictly after* A[i] ends — no intersection possible. A[i] is
+> exhausted. We must advance i.
+>
+> If we advanced j instead, we'd try A[i] against B[j+1], B[j+2], ... forever and
+> never find an intersection because A[i] has already ended before all of them start.
+> Meanwhile, we'd miss intersections between A[i+1] and B[j].
+>
+> The rule "advance whichever ends first" ensures: the interval we move past truly
+> cannot contribute to any future intersection, so we waste no comparisons.
 
 ---
 
@@ -325,6 +445,26 @@ func maxConcurrent(intervals [][]int) int {
 // Alternative: Difference Array (when range is bounded)
 // diff[start]++; diff[end+1]--; then prefix sum
 ```
+
+> **WHY THE +1 / -1 SWEEP LINE WORKS**
+>
+> We want: at time t, how many intervals are "active" (contain t)?
+> An interval [s, e] is active at exactly the times t where s ≤ t ≤ e.
+>
+> Naive approach: for each interval, mark every point in [s,e] as +1. O(n * range).
+> Sweep line insight: instead of updating every point, only record *boundary events*:
+> - At time s: one more interval becomes active → +1
+> - At time e: one interval becomes inactive → -1 (or at e+1 for inclusive ranges)
+>
+> Now a prefix sum over these events gives the active count at every time point:
+> count(t) = (# intervals that started ≤ t) − (# intervals that ended < t)
+>
+> We only store 2n events instead of O(maxVal) → far more efficient when ranges are large.
+>
+> **Tie-breaking at same timestamp:** Sort ends (-1) before starts (+1) at the same time.
+> This handles the case where one meeting ends and another begins simultaneously — the
+> ending meeting's room is freed *before* we count the new meeting, so they don't
+> incorrectly appear concurrent. (Reverse this if the problem treats same-time as overlap.)
 
 ---
 
@@ -373,6 +513,27 @@ func findMinArrowShots(points [][]int) int {
     return arrows
 }
 ```
+
+> **WHY SHOOTING AT THE EARLIEST END IS OPTIMAL**
+>
+> Sort balloons by end position. Consider the first balloon — the one ending earliest
+> at position `e`. We must shoot at least one arrow that hits it. Where should we shoot?
+>
+> Claim: shooting at exactly `e` (its right edge) is never worse than any other position.
+> Proof: any arrow shot at position p < e hits a subset of balloons that an arrow at
+> `e` also hits. Why? A balloon is hit by an arrow at `e` if its range [s, t] satisfies
+> s ≤ e ≤ t. Since e is the smallest end, every balloon whose range includes p < e
+> must extend at least to e (it can't end between p and e — e is the minimum end).
+> So the shot at `e` bursts everything the shot at p would, plus possibly more.
+> Shooting at `e` is always at least as good → optimal.
+>
+> After shooting, skip all burst balloons (those with start ≤ e, which we've handled).
+> Repeat greedily on the rest. This is the Activity Selection problem in disguise —
+> minimizing arrows = maximizing non-overlapping groups of balloons.
+>
+> **Connection to Non-overlapping Intervals (LC 435):**
+> minimum arrows = number of non-overlapping groups = n - (max non-overlapping intervals).
+> Both problems use the same sort-by-end greedy. The code is nearly identical.
 
 ---
 
