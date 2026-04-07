@@ -406,3 +406,13 @@ diffBit := xorAll & (-xorAll)
 - "Find missing number in range" → XOR with full range
 - "Two unique numbers" → XOR all, isolate set bit, split groups
 - O(1) space required → think XOR first
+
+### Snippets
+XOR gives 1 when bits are different:
+
+- 1 XOR 0 = 1
+- 0 XOR 1 = 1
+- 1 XOR 1 = 0
+- 0 XOR 0 = 0
+
+So to get a large XOR result, we want numbers to have different bits in high positions.
