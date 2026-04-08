@@ -298,64 +298,32 @@ The heap doesn't care about the full order of everyone in the queue — it only 
 
 **🟢 Easy**
 
-  --------------------------------------------------------------------------
-  **\#**   **Problem**                **Hint**
-  -------- -------------------------- --------------------------------------
-  703      Kth Largest in a Stream    Min-heap of size K; each new element:
-                                      push + maybe pop
-
-  1337     K Weakest Rows in Matrix   Heap on (soldiers_count, row_index);
-                                      keep K smallest
-
-  1046     Last Stone Weight          Max-heap; simulate: pop two, push
-                                      difference if any
-
-  2231     Largest Number After Digit Min-heap on digit value;
-           Swaps by Parity            straightforward heap exercise
-  --------------------------------------------------------------------------
+| # | Problem | Hint |
+| --- | --- | --- |
+| 703 | Kth Largest in a Stream | Min-heap of size K; each new element: push + maybe pop |
+| 1337 | K Weakest Rows in Matrix | Heap on `(soldiers_count, row_index)`; keep K smallest |
+| 1046 | Last Stone Weight | Max-heap; simulate: pop two, push difference if any |
+| 2231 | Largest Number After Digit Swaps by Parity | Min-heap on digit value; straightforward heap exercise |
 
 **🟡 Medium**
 
-  --------------------------------------------------------------------------
-  **\#**   **Problem**                **Hint**
-  -------- -------------------------- --------------------------------------
-  215      Kth Largest Element in     Min-heap size K; root = answer
-           Array                      
-
-  347      Top K Frequent Elements    Freq map first, then min-heap on
-                                      frequency
-
-  973      K Closest Points to Origin Max-heap on x²+y²; evict farthest
-
-  658      Find K Closest Elements    Min-heap on \|x - target\|; collect K
-                                      elements
-
-  1985     Find the Kth Largest       Strings as numbers; min-heap with
-           Integer in Array           string comparison
-
-  373      Find K Pairs with Smallest Min-heap on sum; classic K-way merge
-           Sums                       variant
-
-  767      Reorganize String          Max-heap on char frequency; greedily
-                                      pick most frequent
-
-  1167     Minimum Cost to Connect    Min-heap; always merge two smallest
-           Sticks                     (classic greedy)
-  --------------------------------------------------------------------------
+| # | Problem | Hint |
+| --- | --- | --- |
+| 215 | Kth Largest Element in Array | Min-heap size K; root = answer |
+| 347 | Top K Frequent Elements | Freq map first, then min-heap on frequency |
+| 973 | K Closest Points to Origin | Max-heap on `x² + y²`; evict farthest |
+| 658 | Find K Closest Elements | Min-heap on `|x - target|`; collect K elements |
+| 1985 | Find the Kth Largest Integer in Array | Strings as numbers; min-heap with string comparison |
+| 373 | Find K Pairs with Smallest Sums | Min-heap on sum; classic K-way merge variant |
+| 767 | Reorganize String | Max-heap on char frequency; greedily pick most frequent |
+| 1167 | Minimum Cost to Connect Sticks | Min-heap; always merge two smallest (classic greedy) |
 
 **🔴 Hard**
 
-  --------------------------------------------------------------------------
-  **\#**   **Problem**                **Hint**
-  -------- -------------------------- --------------------------------------
-  295      Find Median from Data      Two heaps: max-heap (lower half) +
-           Stream                     min-heap (upper half)
-
-  358      Rearrange String K         Max-heap + cooldown queue of size K
-           Distance Apart             
-
-  1439     Find the Kth Smallest Sum  Min-heap on (sum, i, j); expand
-           of a Matrix                neighbors
-  --------------------------------------------------------------------------
+| # | Problem | Hint |
+| --- | --- | --- |
+| 295 | Find Median from Data Stream | Two heaps: max-heap (lower half) + min-heap (upper half) |
+| 358 | Rearrange String K Distance Apart | Max-heap + cooldown queue of size K |
+| 1439 | Find the Kth Smallest Sum of a Matrix | Min-heap on `(sum, i, j)`; expand neighbors |
 
 _Now that you understand heaps, the Top K Elements pattern will feel completely natural._
