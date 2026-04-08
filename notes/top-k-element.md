@@ -1,830 +1,298 @@
-**🏔️ Heaps --- The Data Structure Explained**
+# 🏔️ Heaps — The Data Structure That Always Knows the Best
 
-_Before the pattern. Build intuition first._
-
-**1. What Is a Heap? (The Honest Explanation)**
-
-A heap is a special binary tree with one rule:
-
-→ Min-Heap: Every parent is SMALLER than its children. The top is always
-the smallest.
-
-→ Max-Heap: Every parent is LARGER than its children. The top is always
-the largest.
-
-That\'s it. One rule. Everything else follows from this.
-
-**2. Why Should You Care?**
-
-The problem heaps solve: \'Give me the min (or max) element FAST, even
-as elements are added/removed.\'
-
-Arrays can find min/max but it costs O(n) --- you scan everything.
-
-A sorted array gives O(1) access but O(n) insertion.
-
-A Heap gives you BOTH: O(1) peek at min/max + O(log n) insert/remove.
-
-**3. Real-World Analogy**
-
-Think of a hospital ER:
-
-- Patients arrive at random times
-
-- The most critical patient (highest priority) is always treated first
-
-- When that patient is treated, the next most critical takes their
-  spot
-
-The ER queue IS a max-heap on \'criticality score\'. O(log n) to add a
-patient, O(1) to see who\'s next, O(log n) to remove them after
-treatment.
-
-**4. How Does It Work Internally? (Simplified)**
-
-A heap is stored as a simple ARRAY (not actually a tree in memory):
+> **Mentor Note:** Before diving into Top K Elements, you MUST understand Heaps. Most people skip this and then struggle forever. This guide will make heaps feel obvious.
 
 ---
 
-// Min-Heap stored as array:
+## 1. What Problem Does a Heap Solve?
 
-// Index: 0 1 2 3 4 5 6
+Imagine you're running a hospital emergency room. Patients keep arriving, and you always want to treat the **most critical patient first** — not the one who arrived first, not the last one, but always the most critical.
 
-// Value: \[1, 3, 2, 7, 5, 4, 8\]
+Now, you could sort all patients every time a new one arrives. But that's wasteful — O(n log n) every time.
 
-// Relationships (for node at index i):
+What if there was a structure that could **always give you the most critical patient in O(1)**, and inserting a new patient only costs **O(log n)**?
 
-// Left child → 2\*i + 1
+**That's a Heap.**
 
-// Right child → 2\*i + 2
-
-// Parent → (i-1) / 2
+A heap is a special tree that always keeps the most important element at the top — ready to be grabbed instantly.
 
 ---
 
-The array \[1, 3, 2, 7, 5, 4, 8\] represents this tree:
+## 2. The Core Idea — What IS a Heap?
+
+A heap is a **complete binary tree** with one special rule:
+
+> **Every parent is always greater than (or less than) its children.**
+
+That's it. That one rule is the entire secret.
+
+**Max-Heap:** Parent is always LARGER than children → Top is the MAXIMUM element.
+
+**Min-Heap:** Parent is always SMALLER than children → Top is the MINIMUM element.
+
+```
+Max-Heap Example:
+        10
+       /  \
+      7    8
+     / \  /
+    3   4 5
+
+Min-Heap Example:
+        1
+       / \
+      3    2
+     / \  /
+    7   4 5
+```
+
+**Key insight:** You do NOT need the whole tree to be sorted. You only guarantee the parent-child relationship. This is why heaps are fast — maintaining full sort order is expensive, but maintaining the parent > child rule is cheap.
 
 ---
 
-1 ← root (always min)
+## 3. How a Heap Is Actually Stored
 
-/ \\
+Here's the beautiful trick: **we never actually build a tree with pointers**. We store the heap in a plain array!
 
-3 2
+```
+Array: [10, 7, 8, 3, 4, 5]
+Index:   0  1  2  3  4  5
 
-/ \\ / \\
+For any element at index i:
+  - Left child  → index 2*i + 1
+  - Right child → index 2*i + 2
+  - Parent      → index (i-1) / 2
+```
 
-7 5 4 8
+This means:
 
----
+- `10` is at index 0 → its children are at index 1 (`7`) and index 2 (`8`) ✓
+- `7` is at index 1 → its children are at index 3 (`3`) and index 4 (`4`) ✓
 
-**5. The Two Key Operations**
-
-**Insert (Heapify Up)**
-
-Add to end of array. Then \'bubble up\' --- swap with parent until heap
-property is restored.
-
----
-
-// Insert 0 into \[1, 3, 2, 7, 5, 4, 8\]:
-
-// Step 1: append → \[1, 3, 2, 7, 5, 4, 8, 0\]
-
-// Step 2: 0 \< parent(3)? Yes → swap → \[1, 3, 2, 0, 5, 4, 8, 7\]
-
-// Step 3: 0 \< parent(1)? Yes → swap → \[0, 3, 2, 1, 5, 4, 8, 7\]
-
-// Step 4: 0 is root. Done! O(log n) swaps
+No pointers. No memory overhead. Just array math. This is why heaps are incredibly memory efficient.
 
 ---
 
-**Remove Min (Heapify Down)**
+## 4. The Two Core Operations
 
-Swap root with last element. Remove last. Then \'bubble down\' --- swap
-with smaller child until fixed.
+### 4.1 Insert (Push) — O(log n)
+
+1. Add the new element at the **end of the array** (bottom of the tree).
+2. **"Bubble up"** (also called sift-up): Compare with parent. If it violates the heap rule, swap. Repeat until the rule is satisfied.
+
+```
+Insert 9 into Max-Heap [10, 7, 8, 3, 4, 5]:
+
+Step 1: Add at end → [10, 7, 8, 3, 4, 5, 9]
+Step 2: 9 > parent(8) → swap → [10, 7, 9, 3, 4, 5, 8]
+Step 3: 9 < parent(10) → stop!
+
+Final: [10, 7, 9, 3, 4, 5, 8]  ✓
+```
+
+### 4.2 Extract Top (Pop) — O(log n)
+
+1. The top element (index 0) is your answer — grab it.
+2. Move the **last element to the top**.
+3. **"Bubble down"** (also called sift-down): Compare with children. Swap with the largest/smallest child if it violates the heap rule. Repeat until rule is satisfied.
+
+```
+Extract max from [10, 7, 9, 3, 4, 5, 8]:
+
+Step 1: Grab 10 (answer)
+Step 2: Move last (8) to top → [8, 7, 9, 3, 4, 5]
+Step 3: 8 < child(9) → swap → [9, 7, 8, 3, 4, 5]
+Step 4: 9 > both children → stop!
+
+Extracted: 10 ✓
+```
+
+### 4.3 Peek Top — O(1)
+
+Just look at index 0. Done. This is the magic — the best element is always sitting right there.
 
 ---
 
-// Remove min from \[1, 3, 2, 7, 5, 4, 8\]:
+## 5. Complexity Table
 
-// Step 1: swap root+last → \[8, 3, 2, 7, 5, 4, 1\]
+| Operation             | Time     | Why                                 |
+| --------------------- | -------- | ----------------------------------- |
+| Peek (get min/max)    | O(1)     | Always at index 0                   |
+| Insert                | O(log n) | Bubble up at most tree height       |
+| Extract min/max       | O(log n) | Bubble down at most tree height     |
+| Build heap from array | O(n)     | Heapify algorithm (not O(n log n)!) |
+| Search for element    | O(n)     | Heap isn't sorted — must scan all   |
 
-// Step 2: remove last → \[8, 3, 2, 7, 5, 4\]
-
-// Step 3: 8 \> min(3,2)=2 → swap → \[2, 3, 8, 7, 5, 4\]
-
-// Step 4: 8 \> min(4)=4 → swap → \[2, 3, 4, 7, 5, 8\]
-
-// Done! O(log n)
-
----
-
-**6. Heap in Go**
-
-Go doesn\'t have a built-in heap like Python\'s heapq. You use the
-\'container/heap\' package:
+> **Why O(n) to build a heap?** Intuitively, most elements are near the leaves and barely need to bubble down. The math works out to O(n). This is a well-known result.
 
 ---
 
-import \"container/heap\"
+## 6. Heaps in Go — Using `container/heap`
 
-// Min-Heap of integers
+Go doesn't have a built-in heap like Python's `heapq`, but it provides the `container/heap` package which is clean once you understand the pattern.
 
-type MinHeap \[\]int
+### 6.1 Min-Heap in Go
 
-func (h MinHeap) Len() int { return len(h) }
+```go
+package main
 
-func (h MinHeap) Less(i, j int) bool { return h\[i\] \< h\[j\] } // \<
-= min-heap
+import (
+    "container/heap"
+    "fmt"
+)
 
-func (h MinHeap) Swap(i, j int) { h\[i\], h\[j\] = h\[j\], h\[i\] }
+// MinHeap is just a slice of ints
+type MinHeap []int
 
-func (h \*MinHeap) Push(x any) { \*h = append(\*h, x.(int)) }
+// These 5 methods are REQUIRED by container/heap interface
+func (h MinHeap) Len() int           { return len(h) }
+func (h MinHeap) Less(i, j int) bool { return h[i] < h[j] } // Min-Heap: smaller = higher priority
+func (h MinHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
 
-func (h \*MinHeap) Pop() any {
-
-old := \*h; n := len(old)
-
-x := old\[n-1\]; \*h = old\[:n-1\]
-
-return x
-
+func (h *MinHeap) Push(x interface{}) {
+    *h = append(*h, x.(int))
 }
 
-// Usage:
-
-h := &MinHeap{5, 3, 1, 4, 2}
-
-heap.Init(h) // build heap from slice: O(n)
-
-heap.Push(h, 0) // insert: O(log n)
-
-min := heap.Pop(h) // remove min: O(log n)
-
-peekMin := (\*h)\[0\] // peek min: O(1)
-
----
-
-For Max-Heap, just flip the Less function:
-
----
-
-func (h MaxHeap) Less(i, j int) bool { return h\[i\] \> h\[j\] } // \>
-= max-heap
-
----
-
-**7. Heap Complexity Cheat Sheet**
-
----
-
-**Operation** **Time** **Why**
-
----
-
-Peek min/max O(1) Root is always at index 0
-
-Insert O(log n) Bubble up at most tree height
-
-Remove min/max O(log n) Bubble down at most tree height
-
-Build from array O(n) Math trick --- heapify is O(n)
-not O(n log n)
-
-Search arbitrary O(n) Heap gives NO ordering guarantee
-for non-root
-
----
-
-**8. When to Reach for a Heap**
-
-Mental trigger: \'I need the smallest/largest K things, efficiently, as
-data comes in.\'
-
-- Finding K largest / K smallest elements
-
-- Merging K sorted arrays/lists
-
-- Running median (two heaps trick)
-
-- Scheduling / priority queues
-
-- Dijkstra\'s shortest path (heap for min distances)
-
-**🎯 Top \'K\' Elements Pattern**
-
-_Pattern #5 --- Interview-Focused DSA Notes in Go_
-
-**1. Pattern Overview**
-
-**What Is This Pattern?**
-
-The Top K Elements pattern helps you find the K largest, K smallest, K
-most frequent, or K closest elements from a dataset.
-
-The core insight: You don\'t need to sort everything. You just need to
-maintain a small window of K candidates.
-
-**Real-World Analogy**
-
-Imagine Spotify tracking the Top 10 most-played songs globally across
-millions of plays. They don\'t sort all songs every second --- they
-maintain a rolling list of top 10. If a new song beats the least popular
-song in the top 10, it replaces it. This is exactly how the pattern
-works.
-
-**Why Not Just Sort?**
-
----
-
-**Approach** **Time** **Good When?**
-
----
-
-Sort all, take K O(n log n) K is close to n
-
-Min-Heap of size K O(n log K) K \<\< n (K is much smaller than
-n)
-
-Quickselect O(n) avg Only need Kth element, not sorted
-K
-
----
-
-The heap approach shines because log K is much smaller than log N when K
-is small. If n=1,000,000 and K=10, you\'re doing \~10 operations per
-element instead of \~20.
-
-**2. Core Idea (Most Important)**
-
-KEY INSIGHT #1: Use a Min-Heap of size K to find K LARGEST elements.
-
-This seems backwards at first --- why min-heap for largest? Because:
-
-- The min-heap\'s top is the SMALLEST of your K candidates
-
-- When a new element arrives, compare it to the min (heap top)
-
-- If new \> min: evict the min, insert the new element
-
-- At the end: heap contains the K largest elements
-
-KEY INSIGHT #2: Use a Max-Heap of size K to find K SMALLEST elements.
-(Symmetric logic)
-
-Think of the heap as a \'bouncer at a VIP club\' --- only K people
-allowed. A new person only gets in if they\'re \'better\' than the worst
-person currently inside.
-
-**3. When to Use This Pattern**
-
----
-
-**Signal in Question** **What It Means**
-
----
-
-\'K largest / K smallest\' Direct pattern match → use heap of size K
-
-\'K most frequent\' Frequency map + heap on frequencies
-
-\'K closest to Heap sorted by distance
-origin/point\'
-
-\'Top K\' anything Same pattern, different comparison key
-
-\'Kth largest/smallest\' Heap of size K, return heap top
-
-\'Running / stream of Heap is perfect for dynamic data
-data\'
-
----
-
-**4. Types / Variants**
-
-**Type 1: K Largest Elements**
-
-Use Min-Heap of size K. At the end, heap contains the K largest.
-
-**Type 2: K Smallest Elements**
-
-Use Max-Heap of size K. At the end, heap contains the K smallest.
-
-**Type 3: K Most Frequent**
-
-Build frequency map first. Then use Min-Heap of size K sorted by
-frequency. Or use bucket sort for O(n).
-
-**Type 4: K Closest Points**
-
-Use Max-Heap of size K sorted by distance. Same logic as K largest, just
-different comparison key.
-
-**5. Data Structures Used**
-
-**Min-Heap (Primary DS)**
-
-- Gives O(1) access to minimum element
-
-- O(log k) insert and delete
-
-- Used for finding K largest (counter-intuitive but correct)
-
-**Max-Heap**
-
-- Gives O(1) access to maximum element
-
-- Used for finding K smallest
-
-- Also used in \'K closest\' problems
-
-**HashMap**
-
-- Used in \'K most frequent\' to count frequencies first
-
-- O(1) insert and lookup
-
-- Always the first step in frequency-based problems
-
-**Bucket Sort Array (Alternative)**
-
-- For K most frequent: buckets\[frequency\] = list of elements
-
-- O(n) time, avoids heap entirely
-
-- Use when you need O(n) and frequency is bounded by array length
-
-**6. Core Templates**
-
-**Template 1: K Largest Elements (Min-Heap)**
-
----
-
-import \"container/heap\"
-
-type MinHeap \[\]int
-
-func (h MinHeap) Len() int { return len(h) }
-
-func (h MinHeap) Less(i, j int) bool { return h\[i\] \< h\[j\] }
-
-func (h MinHeap) Swap(i, j int) { h\[i\], h\[j\] = h\[j\], h\[i\] }
-
-func (h \*MinHeap) Push(x any) { \*h = append(\*h, x.(int)) }
-
-func (h \*MinHeap) Pop() any {
-
-old := \*h; n := len(old)
-
-x := old\[n-1\]; \*h = old\[:n-1\]
-
-return x
-
+func (h *MinHeap) Pop() interface{} {
+    old := *h
+    n := len(old)
+    x := old[n-1]       // grab last element
+    *h = old[:n-1]      // shrink slice
+    return x
 }
 
-func kLargest(nums \[\]int, k int) \[\]int {
+func main() {
+    h := &MinHeap{5, 2, 8, 1, 9}
+    heap.Init(h)            // Build heap from existing slice — O(n)
 
-h := &MinHeap{}
+    heap.Push(h, 3)         // Insert 3 — O(log n)
+    fmt.Println((*h)[0])    // Peek min — O(1) → prints 1
 
-heap.Init(h)
+    min := heap.Pop(h)      // Extract min — O(log n)
+    fmt.Println(min)        // prints 1
+}
+```
 
-for \_, num := range nums {
+### 6.2 Max-Heap in Go
 
-heap.Push(h, num)
+The ONLY change from MinHeap: **flip the Less function**.
 
-if h.Len() \> k {
+```go
+type MaxHeap []int
 
-heap.Pop(h) // remove smallest --- only keep top K
+func (h MaxHeap) Len() int           { return len(h) }
+func (h MaxHeap) Less(i, j int) bool { return h[i] > h[j] } // FLIPPED → Max-Heap
+func (h MaxHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
 
+func (h *MaxHeap) Push(x interface{}) {
+    *h = append(*h, x.(int))
 }
 
+func (h *MaxHeap) Pop() interface{} {
+    old := *h
+    n := len(old)
+    x := old[n-1]
+    *h = old[:n-1]
+    return x
+}
+```
+
+### 6.3 Heap of Pairs (most useful in interviews!)
+
+When you need to store (value, index) or (frequency, element) pairs:
+
+```go
+// Pair represents (priority, value)
+type Pair struct {
+    priority int
+    value    int
 }
 
-return \[\]int(\*h) // heap contains K largest
+type PairMinHeap []Pair
 
+func (h PairMinHeap) Len() int           { return len(h) }
+func (h PairMinHeap) Less(i, j int) bool { return h[i].priority < h[j].priority }
+func (h PairMinHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
+
+func (h *PairMinHeap) Push(x interface{}) { *h = append(*h, x.(Pair)) }
+func (h *PairMinHeap) Pop() interface{} {
+    old := *h
+    x := old[len(old)-1]
+    *h = old[:len(old)-1]
+    return x
 }
+```
 
 ---
 
-**Template 2: K Most Frequent (Frequency Map + Heap)**
+## 7. When to Use Min-Heap vs Max-Heap
+
+This trips up a LOT of people. Here's the intuition:
+
+| You want               | Use                    | Why                                                         |
+| ---------------------- | ---------------------- | ----------------------------------------------------------- |
+| K largest elements     | **Min-Heap of size K** | Keep K largest; min-heap lets you easily evict the smallest |
+| K smallest elements    | **Max-Heap of size K** | Keep K smallest; max-heap lets you easily evict the largest |
+| Always get the minimum | **Min-Heap**           | Minimum is always at the top                                |
+| Always get the maximum | **Max-Heap**           | Maximum is always at the top                                |
+| Merge K sorted lists   | **Min-Heap**           | Always pick the smallest current element                    |
+| Running median         | **Both**               | Max-heap for lower half, min-heap for upper half            |
+
+> **Memory trick for K Largest:** "I want large, so I use a min-heap." This sounds backward but makes sense: you maintain K large elements and throw away anything smaller than your current minimum. The min-heap top tells you what to evict.
 
 ---
 
-type FreqItem struct{ val, freq int }
+## 8. Real Problems Heaps Solve
 
-type FreqHeap \[\]FreqItem
+### Problem 1: Always get the next best element
 
-func (h FreqHeap) Len() int { return len(h) }
+- Finding the shortest path (Dijkstra's algorithm)
+- Task scheduling by priority
+- Finding K closest points
 
-func (h FreqHeap) Less(i, j int) bool { return h\[i\].freq \<
-h\[j\].freq } // min-heap on freq
+### Problem 2: Maintain a running rank
 
-func (h FreqHeap) Swap(i, j int) { h\[i\], h\[j\] = h\[j\], h\[i\] }
+- "Is this new salary above the median?" — requires knowing the median at all times
+- Sliding window maximum/minimum
 
-func (h \*FreqHeap) Push(x any) { \*h = append(\*h, x.(FreqItem)) }
+### Problem 3: Merging sorted sequences
 
-func (h \*FreqHeap) Pop() any {
+- Merge K sorted arrays — always pick the smallest unprocessed element across all arrays
 
-old := \*h; n := len(old)
+### Problem 4: Top K anything
 
-x := old\[n-1\]; \*h = old\[:n-1\]
-
-return x
-
-}
-
-func topKFrequent(nums \[\]int, k int) \[\]int {
-
-// Step 1: count frequencies
-
-freq := map\[int\]int{}
-
-for \_, n := range nums { freq\[n\]++ }
-
-// Step 2: maintain min-heap of size K on frequency
-
-h := &FreqHeap{}
-
-heap.Init(h)
-
-for val, f := range freq {
-
-heap.Push(h, FreqItem{val, f})
-
-if h.Len() \> k { heap.Pop(h) }
-
-}
-
-// Step 3: extract results
-
-res := make(\[\]int, k)
-
-for i := k - 1; i \>= 0; i\-- {
-
-res\[i\] = heap.Pop(h).(FreqItem).val
-
-}
-
-return res
-
-}
+- Top K frequent words
+- K closest numbers
+- K largest elements
 
 ---
 
-**Template 3: Kth Largest Element**
+## 9. Common Mistakes with Heaps
+
+**Mistake 1: Confusing which heap to use for Top K.** Remember: Top K Largest → Min-Heap of size K.
+
+**Mistake 2: Forgetting to call `heap.Init()`** when building from an existing slice. Without it, the heap property is not established.
+
+**Mistake 3: Reading the top without popping.** To peek without removing, access `(*h)[0]`. Calling `heap.Pop()` removes the element.
+
+**Mistake 4: Modifying the slice directly** instead of using `heap.Push` and `heap.Pop`. If you modify the underlying slice, the heap property breaks.
+
+**Mistake 5: Using heap.Pop return value without type assertion.** `heap.Pop` returns `interface{}`, so always cast: `val := heap.Pop(h).(int)`.
 
 ---
 
-func findKthLargest(nums \[\]int, k int) int {
+## 10. Quick Mental Model
 
-h := &MinHeap{}
+Think of a heap as a **VIP queue**:
 
-heap.Init(h)
+- **Min-Heap** = queue where the person with the smallest number goes first (like a waiting room sorted by ticket number)
+- **Max-Heap** = queue where the most important person goes first (like a hospital by severity)
+- **Insert** = new person joins and finds their correct relative position
+- **Pop** = the front person leaves, and the queue reorganizes
+- **Peek** = glance at who's next without removing them
 
-for \_, num := range nums {
-
-heap.Push(h, num)
-
-if h.Len() \> k { heap.Pop(h) }
-
-}
-
-return (\*h)\[0\] // root = Kth largest
-
-}
+The heap doesn't care about the full order of everyone in the queue — it only guarantees who's **next**.
 
 ---
 
-**7. Step-by-Step Dry Run**
-
-Problem: Find 3 largest from \[3, 1, 5, 12, 2, 11\]. K = 3
-
-We maintain a Min-Heap of size K=3. The top is always the smallest of
-our candidates.
-
----
-
-Process 3 → heap: \[3\] size=1 ≤ 3, no pop
-
-Process 1 → heap: \[1, 3\] size=2 ≤ 3, no pop
-
-Process 5 → heap: \[1, 3, 5\] size=3 ≤ 3, no pop
-
-Process 12 → heap: \[1, 3, 5, 12\] size=4 \> 3!
-
-→ pop min(1) → heap: \[3, 5, 12\]
-
-Process 2 → heap: \[2, 3, 5, 12\]\... 2 \< min(3)? No wait\...
-
-→ push 2 → heap: \[2, 3, 12, 5\] size=4 \> 3
-
-→ pop min(2) → heap: \[3, 5, 12\] ✓ 2 didn\'t make it
-
-Process 11 → push → \[3, 5, 12, 11\] size=4 \> 3
-
-→ pop min(3) → heap: \[5, 11, 12\]
-
-Result: \[5, 11, 12\] ✓ The 3 largest elements!
-
----
-
-**8. Must-Know Problems**
-
-**Problem 1: Kth Largest Element in an Array (LC 215) --- Medium**
-
-Intuition: Maintain a min-heap of size K. After processing all elements,
-the root IS the Kth largest because K-1 elements are larger than it.
-
----
-
-func findKthLargest(nums \[\]int, k int) int {
-
-h := &MinHeap{}
-
-heap.Init(h)
-
-for \_, num := range nums {
-
-heap.Push(h, num)
-
-if h.Len() \> k {
-
-heap.Pop(h)
-
-}
-
-}
-
-return (\*h)\[0\] // Kth largest is at root
-
-}
-
-// Time: O(n log k) Space: O(k)
-
----
-
-**Problem 2: Top K Frequent Elements (LC 347) --- Medium**
-
-Intuition: First count frequencies (O(n) hashmap), then find K largest
-by frequency (heap on freq). Classic two-step approach.
-
----
-
-func topKFrequent(nums \[\]int, k int) \[\]int {
-
-freq := map\[int\]int{}
-
-for \_, n := range nums { freq\[n\]++ }
-
-h := &FreqHeap{} // min-heap on frequency
-
-heap.Init(h)
-
-for val, f := range freq {
-
-heap.Push(h, FreqItem{val, f})
-
-if h.Len() \> k { heap.Pop(h) }
-
-}
-
-res := make(\[\]int, k)
-
-for i := k - 1; i \>= 0; i\-- {
-
-res\[i\] = heap.Pop(h).(FreqItem).val
-
-}
-
-return res
-
-}
-
-// Time: O(n log k) Space: O(n) for map
-
----
-
-**Problem 3: K Closest Points to Origin (LC 973) --- Medium**
-
-Intuition: Distance = x² + y² (don\'t need sqrt). Use Max-Heap of size K
-on distance --- evict the farthest when size exceeds K.
-
----
-
-type Point struct{ x, y, dist int }
-
-type MaxDistHeap \[\]Point
-
-func (h MaxDistHeap) Len() int { return len(h) }
-
-func (h MaxDistHeap) Less(i, j int) bool { return h\[i\].dist \>
-h\[j\].dist } // MAX-heap
-
-func (h MaxDistHeap) Swap(i, j int) { h\[i\], h\[j\] = h\[j\], h\[i\] }
-
-func (h \*MaxDistHeap) Push(x any) { \*h = append(\*h, x.(Point)) }
-
-func (h \*MaxDistHeap) Pop() any {
-
-old := \*h; n := len(old)
-
-x := old\[n-1\]; \*h = old\[:n-1\]
-
-return x
-
-}
-
-func kClosest(points \[\]\[\]int, k int) \[\]\[\]int {
-
-h := &MaxDistHeap{}
-
-heap.Init(h)
-
-for \_, p := range points {
-
-d := p\[0\]\*p\[0\] + p\[1\]\*p\[1\]
-
-heap.Push(h, Point{p\[0\], p\[1\], d})
-
-if h.Len() \> k { heap.Pop(h) } // remove farthest
-
-}
-
-res := make(\[\]\[\]int, k)
-
-for i := range res {
-
-pt := heap.Pop(h).(Point)
-
-res\[i\] = \[\]int{pt.x, pt.y}
-
-}
-
-return res
-
-}
-
-// Time: O(n log k) Space: O(k)
-
----
-
-**9. Common Mistakes / Gotchas**
-
-- ❌ Using Max-Heap for K largest (should be Min-Heap). Remember:
-  Min-Heap keeps K largest because small elements get evicted.
-
-- ❌ Forgetting heap.Init(h) before use. Always initialize before
-  push/pop.
-
-- ❌ Using sqrt for distance --- never needed! x²+y² comparison gives
-  same order.
-
-- ❌ Off-by-one: popping when h.Len() \>= k instead of \> k. Pop when
-  size EXCEEDS k.
-
-- ❌ Returning heap top for \'K largest\' problems when you want all K
-  elements --- collect the whole heap.
-
-- ❌ Forgetting to build a frequency map before \'K most frequent\'
-  problems. Always map first.
-
-- ❌ Type assertion panic: heap.Pop(h).(int) --- make sure your
-  Push/Pop types match.
-
-**10. Time & Space Complexity**
-
----
-
-**Operation** **Complexity** **Why**
-
----
-
-Build heap from O(n) heap.Init is O(n) --- math
-scratch magic
-
-Insert element O(log k) Bubble up in heap of size k
-
-Remove min/max O(log k) Bubble down in heap of size k
-
-Full n-element scan O(n log k) n elements × O(log k) per
-insert
-
-Space O(k) Heap only holds k elements at
-once
-
-Frequency map step O(n) One pass to count
-
----
-
-**11. Practice Problems**
-
-**🟢 Easy**
-
----
-
-**\#** **Problem** **Hint**
-
----
-
-703 Kth Largest in a Stream Min-heap of size K; each new element:
-push + maybe pop
-
-1337 K Weakest Rows in Matrix Heap on (soldiers_count, row_index);
-keep K smallest
-
-1046 Last Stone Weight Max-heap; simulate: pop two, push
-difference if any
-
-2231 Largest Number After Digit Min-heap on digit value;
-Swaps by Parity straightforward heap exercise
-
----
-
-**🟡 Medium**
-
----
-
-**\#** **Problem** **Hint**
-
----
-
-215 Kth Largest Element in Min-heap size K; root = answer
-Array
-
-347 Top K Frequent Elements Freq map first, then min-heap on
-frequency
-
-973 K Closest Points to Origin Max-heap on x²+y²; evict farthest
-
-658 Find K Closest Elements Min-heap on \|x - target\|; collect K
-elements
-
-1985 Find the Kth Largest Strings as numbers; min-heap with
-Integer in Array string comparison
-
-373 Find K Pairs with Smallest Min-heap on sum; classic K-way merge
-Sums variant
-
-767 Reorganize String Max-heap on char frequency; greedily
-pick most frequent
-
-1167 Minimum Cost to Connect Min-heap; always merge two smallest
-Sticks (classic greedy)
-
----
-
-**🔴 Hard**
-
----
-
-**\#** **Problem** **Hint**
-
----
-
-295 Find Median from Data Two heaps: max-heap (lower half) +
-Stream min-heap (upper half)
-
-358 Rearrange String K Max-heap + cooldown queue of size K
-Distance Apart
-
-1439 Find the Kth Smallest Sum Min-heap on (sum, i, j); expand
-of a Matrix neighbors
-
----
-
-**12. Quick Revision (60 sec)**
-
----
-
-KEY IDEA:
-
-K Largest → Min-Heap of size K (evict min when size \> K)
-
-K Smallest → Max-Heap of size K (evict max when size \> K)
-
-K Frequent → freq map + min-heap on frequency
-
-K Closest → max-heap on distance (evict farthest)
-
-TEMPLATE (K Largest):
-
-for each num in nums:
-
-heap.Push(h, num)
-
-if h.Len() \> k: heap.Pop(h)
-
-return heap contents
-
-WHEN TO USE:
-
-Signal words: \'top K\', \'K largest/smallest\', \'K most frequent\'
-
-Stream of data where you can\'t sort everything
-
-Need better than O(n log n) when K \<\< n
-
-COMPLEXITY: O(n log k) time, O(k) space
-
----
+_Now that you understand heaps, the Top K Elements pattern will feel completely natural._
